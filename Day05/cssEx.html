@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        div{
+            border: 1px solid black;
+        }
+
+        .outline{
+            width: 100px;
+            height: 100px;
+        }
+
+        .child{
+            /* vw, vh의 기준은 브라우저 화면 */
+            width: 50vw;
+            height: 50vh;
+            background-color: lightgray;
+        }
+
+        #div2{
+            background-color: brown;
+        }
+
+        /* 화면 2분할 */
+        .container{
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .pink{
+            flex: 1;
+            background-color: pink;
+        }
+
+        .brown{
+            flex: 1;
+            background-color: brown;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="outline">
+        <!-- 부모 div -->
+        <div class="child">자식</div>
+    </div>
+
+    <!-- 화면 분할 -->
+    <div class="container">
+        <div class="pink">div4</div>
+        <div class="brown">div5</div>
+    </div>
+
+</body>
+
+</html>

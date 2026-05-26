@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        div{
+            border: 1px solid black;
+        }
+        .outline{
+            width: 100px;
+            height: 100px;
+        }
+        .child{
+            /*vw, vh의 기준은 document(브라우저 화면) */
+            width: 50vw;
+            height: 100vh;
+        }
+       
+        #div2{          /*tag id 속성*/
+            background-color: brown;
+        }
+
+        .pink{   /*class 속성*/
+            background-color: pink;
+        }
+        .brown{   /*class 속성*/
+            background-color: brown;
+        }
+
+    </style>
+
+</head>
+<body>
+     <div class="outline">
+    <!--부모 div의 -->
+        <div class="child">자식</div>
+    </div>
+     div class="pink">div4</div>
+    <div class="brown">div5</div>
+</body>
+</html>
