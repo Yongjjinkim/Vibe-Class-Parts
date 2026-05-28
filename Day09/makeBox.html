@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            width: 900px;
+            height: 700px;
+            border: 1px solid black;
+            gap: 10px;
+            overflow: auto;
+            align-content: flex-start;
+        }
+        .box {
+            width: 100px;
+            height: 100px;
+            border: 1px solid black;
+        }
+        .buttonArea {
+            width: 900px;
+        }
+            
+    </style>
+</head>
+<body>
+    <div class="container"></div>
+    <div class="buttonArea">
+        <button type="button" onclick="makeBox();">생성</button>
+        <button type="button" onclick="deleteBox();">삭제</button>
+    </div>
+    <script>
+        const container = document.querySelector(".container");
+        
+        //색상 만들기(RGB)
+    const colors = () => {
+        const arrColor = [];
+
+        for (let i = 0; i < 3; i++) {
+            const rgb = Math.floor(Math.random() * 256);
+            let hex = rgb.toString(16);
+
+            if(hex.length === 1) {
+                hex = "0" + hex;
+            }
+            arrColor.push(hex);           
+        }
+          //join(접착제) 함수를 쓰면 배열을 하나의 문자열로 접착젤ㄹ 사용해서 붙임
+        //예제: [1, 2, 3].join('#') >> 1#2#3
+        return '#' + arrColor.join('');
+    }
+
+        function makeBox() {
+            const box = document.createElement("div");
+            box.className = 'box';
+            box.style.backgroundColor = colors();
+            container.append(box);
+        }
+        function deleteBox() {
+            const box = document.querySelector(".box");
+            if (box) {
+                box.remove();
+            }
+        }
+      
+    </script>
+</body>
+</html>
