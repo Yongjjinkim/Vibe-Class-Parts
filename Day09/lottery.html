@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎱 로또 번호 추천 시스템</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px 60px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 580px;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 2rem;
+      color: #FBC400;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(251,196,0,0.5);
+    }
+    .header p {
+      color: #888;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    /* ─── Card ─── */
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(10px);
+    }
+    .card-title {
+      font-size: 0.78rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    /* ─── Mode Tabs ─── */
+    .tabs {
+      display: flex;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 6px;
+      text-align: center;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #aaa;
+      transition: all 0.25s;
+      user-select: none;
+    }
+    .tab:hover { color: #fff; }
+    .tab.active {
+      background: linear-gradient(135deg, #FBC400, #e0a800);
+      color: #1a1a2e;
+      font-weight: 700;
+      box-shadow: 0 2px 12px rgba(251,196,0,0.4);
+    }
+
+    /* ─── Manual Info ─── */
+    .manual-info {
+      text-align: center;
+      color: #aaa;
+      font-size: 0.88rem;
+      padding: 8px;
+      background: rgba(251,196,0,0.08);
+      border: 1px dashed rgba(251,196,0,0.3);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .manual-info span { color: #FBC400; font-weight: 700; }
+
+    /* ─── Number Grid ─── */
+    .number-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 7px;
+    }
+    .num-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      transition: all 0.15s;
+      user-select: none;
+      position: relative;
+      box-shadow: inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 3px 6px rgba(255,255,255,0.25);
+    }
+    .num-cell:hover { transform: scale(1.12); filter: brightness(1.2); }
+
+    /* 기본 상태 */
+    .num-cell.state-normal { opacity: 1; }
+
+    /* 고정 상태 */
+    .num-cell.state-pinned {
+      box-shadow:
+        0 0 0 3px #fff,
+        0 0 14px rgba(255,255,255,0.9),
+        inset 0 -3px 6px rgba(0,0,0,0.25);
+      transform: scale(1.1);
+      z-index: 1;
+    }
+    .num-cell.state-pinned::after {
+      content: '📌';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      font-size: 0.6rem;
+    }
+
+    /* 제외 상태 */
+    .num-cell.state-excluded {
+      opacity: 0.25;
+      filter: grayscale(80%);
+      text-decoration: line-through;
+      cursor: pointer;
+    }
+
+    /* 수동 선택 상태 */
+    .num-cell.state-manual {
+      box-shadow:
+        0 0 0 3px #FBC400,
+        0 0 14px rgba(251,196,0,0.8),
+        inset 0 -3px 6px rgba(0,0,0,0.25);
+      transform: scale(1.1);
+      z-index: 1;
+    }
+
+    /* ─── Status Rows ─── */
+    .status-row {
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 8px 0;
+    }
+    .status-row + .status-row {
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .status-label {
+      font-size: 0.82rem;
+      color: #aaa;
+      min-width: 52px;
+      padding-top: 3px;
+    }
+    .badges-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      flex: 1;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      color: #ddd;
+    }
+    .badge .rm {
+      cursor: pointer;
+      color: #ff7272;
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .badge .rm:hover { color: #ff4040; }
+
+    .clear-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #777;
+      padding: 3px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .clear-btn:hover { border-color: #ff7272; color: #ff7272; }
+
+    /* ─── Generate Button ─── */
+    .generate-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #FBC400 0%, #ff9a3c 100%);
+      border: none;
+      border-radius: 14px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 20px rgba(251,196,0,0.3);
+    }
+    .generate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(251,196,0,0.5);
+    }
+    .generate-btn:active { transform: translateY(0); }
+
+    /* ─── Result ─── */
+    .result-wrap {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ball {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      box-shadow:
+        inset -4px -4px 8px rgba(0,0,0,0.3),
+        inset 4px 4px 8px rgba(255,255,255,0.25),
+        0 4px 10px rgba(0,0,0,0.4);
+      animation: popIn 0.3s ease backwards;
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .copy-btn {
+      margin-left: auto;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      padding: 7px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ─── History ─── */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .hist-idx {
+      color: #555;
+      font-size: 0.78rem;
+      min-width: 18px;
+      text-align: right;
+    }
+    .hist-balls { display: flex; gap: 6px; }
+    .hist-ball {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3), inset 2px 2px 5px rgba(255,255,255,0.2);
+    }
+
+    /* ─── Reset ─── */
+    .reset-btn {
+      width: 100%;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #555;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .reset-btn:hover { border-color: #ff7272; color: #ff7272; }
+
+    /* ─── Toast ─── */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(30,30,50,0.95);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 400px) {
+      .number-grid { gap: 5px; }
+      .num-cell { font-size: 0.72rem; }
+      .ball { width: 43px; height: 43px; font-size: 0.95rem; }
+      .hist-ball { width: 28px; height: 28px; font-size: 0.68rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🎱 로또 번호 추천</h1>
+    <p>1~45 중 6개 · 나만의 조건으로 스마트하게</p>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-mode="auto">🎲 자동</div>
+    <div class="tab"        data-mode="semi">📌 반자동</div>
+    <div class="tab"        data-mode="manual">✋ 수동</div>
+  </div>
+
+  <!-- Manual hint -->
+  <div class="manual-info" id="manualInfo" style="display:none">
+    번호판에서 6개를 직접 선택하세요&nbsp;
+    (<span id="manualCount">0</span> / 6)
+  </div>
+
+  <!-- Number Grid -->
+  <div class="card">
+    <div class="card-title">번호판 — 클릭: 기본 → 고정 → 제외 → 기본</div>
+    <div class="number-grid" id="numberGrid"></div>
+  </div>
+
+  <!-- Status: excluded & pinned -->
+  <div class="card" id="statusCard">
+    <div class="status-row">
+      <span class="status-label">❌ 제외</span>
+      <div class="badges-wrap" id="excludedBadges"></div>
+      <button class="clear-btn" onclick="clearExcluded()">전체해제</button>
+    </div>
+    <div class="status-row" id="pinnedRow">
+      <span class="status-label">📌 고정</span>
+      <div class="badges-wrap" id="pinnedBadges"></div>
+      <button class="clear-btn" onclick="clearPinned()">전체해제</button>
+    </div>
+  </div>
+
+  <!-- Generate Button -->
+  <button class="generate-btn" onclick="onGenerate()">🎲 추천 번호 생성</button>
+
+  <!-- Result -->
+  <div class="card" id="resultCard" style="display:none">
+    <div class="card-title">✨ 추천 번호</div>
+    <div class="result-wrap" id="resultWrap"></div>
+  </div>
+
+  <!-- History -->
+  <div class="card" id="historyCard" style="display:none">
+    <div class="card-title">🕐 최근 이력 (최대 5회)</div>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Reset -->
+  <button class="reset-btn" onclick="resetAll()">🔄 전체 초기화</button>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ══════════════════════════════════
+     STATE
+  ══════════════════════════════════ */
+  const state = {
+    mode: 'auto',          // 'auto' | 'semi' | 'manual'
+    excluded: new Set(),
+    pinned:   new Set(),
+    selected: new Set(),   // 수동 모드용
+    history:  []           // 최대 5회
+  };
+
+  /* ══════════════════════════════════
+     BALL COLOR
+  ══════════════════════════════════ */
+  function getBallColor(n) {
+    if (n <=  9) return '#FBC400';
+    if (n <= 19) return '#069CE7';
+    if (n <= 29) return '#FF7272';
+    if (n <= 39) return '#AAAAAA';
+    return '#B0D840';
+  }
+
+  function getGradient(n) {
+    const base = getBallColor(n);
+    const r = parseInt(base.slice(1,3), 16);
+    const g = parseInt(base.slice(3,5), 16);
+    const b = parseInt(base.slice(5,7), 16);
+    const light = `rgb(${Math.min(r+70,255)},${Math.min(g+70,255)},${Math.min(b+70,255)})`;
+    return `radial-gradient(circle at 35% 30%, ${light}, ${base})`;
+  }
+
+  /* ══════════════════════════════════
+     BUILD GRID
+  ══════════════════════════════════ */
+  function buildGrid() {
+    const grid = document.getElementById('numberGrid');
+    grid.innerHTML = '';
+    for (let n = 1; n <= 45; n++) {
+      const cell = document.createElement('div');
+      cell.className = 'num-cell state-normal';
+      cell.id = `cell-${n}`;
+      cell.textContent = n;
+      cell.style.background = getGradient(n);
+      cell.addEventListener('click', () => onCellClick(n));
+      grid.appendChild(cell);
+    }
+  }
+
+  /* ══════════════════════════════════
+     CELL CLICK
+  ══════════════════════════════════ */
+  function onCellClick(n) {
+    if (state.mode === 'manual') {
+      handleManualClick(n);
+      return;
+    }
+
+    if (state.pinned.has(n)) {
+      // 고정 → 제외
+      state.pinned.delete(n);
+      if (state.excluded.size >= 39) {
+        showToast('⚠️ 최소 6개 번호가 필요합니다 (최대 39개 제외)');
+        state.pinned.add(n); // 되돌리기
+        return;
+      }
+      state.excluded.add(n);
+      showToast(`🔄 ${n}번 : 고정 → 제외`);
+    } else if (state.excluded.has(n)) {
+      // 제외 → 기본
+      state.excluded.delete(n);
+    } else {
+      // 기본 → 고정
+      if (state.pinned.size >= 6) {
+        showToast('📌 고정 번호는 최대 6개까지 가능합니다');
+        return;
+      }
+      state.pinned.add(n);
+    }
+
+    render();
+  }
+
+  /* ══════════════════════════════════
+     MANUAL CLICK
+  ══════════════════════════════════ */
+  function handleManualClick(n) {
+    if (state.excluded.has(n)) {
+      showToast('❌ 제외된 번호는 선택할 수 없습니다');
+      return;
+    }
+    if (state.selected.has(n)) {
+      state.selected.delete(n);
+    } else {
+      if (state.selected.size >= 6) {
+        showToast('✋ 최대 6개까지 선택할 수 있습니다');
+        return;
+      }
+      state.selected.add(n);
+    }
+    renderGrid();
+    document.getElementById('manualCount').textContent = state.selected.size;
+  }
+
+  /* ══════════════════════════════════
+     RENDER
+  ══════════════════════════════════ */
+  function render() {
+    renderGrid();
+    renderStatus();
+  }
+
+  function renderGrid() {
+    for (let n = 1; n <= 45; n++) {
+      const cell = document.getElementById(`cell-${n}`);
+      cell.className = 'num-cell';
+
+      if (state.mode === 'manual') {
+        if (state.excluded.has(n))  cell.classList.add('state-excluded');
+        else if (state.selected.has(n)) cell.classList.add('state-manual');
+        else                         cell.classList.add('state-normal');
+      } else {
+        if (state.pinned.has(n))    cell.classList.add('state-pinned');
+        else if (state.excluded.has(n)) cell.classList.add('state-excluded');
+        else                         cell.classList.add('state-normal');
+      }
+    }
+  }
+
+  function renderStatus() {
+    // Excluded badges
+    const excDiv = document.getElementById('excludedBadges');
+    excDiv.innerHTML = '';
+    [...state.excluded].sort((a,b)=>a-b).forEach(n => {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.innerHTML = `${n} <span class="rm" onclick="removeExcluded(${n})">✕</span>`;
+      excDiv.appendChild(b);
+    });
+
+    // Pinned badges
+    const pinDiv = document.getElementById('pinnedBadges');
+    pinDiv.innerHTML = '';
+    [...state.pinned].sort((a,b)=>a-b).forEach(n => {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.innerHTML = `${n} <span class="rm" onclick="removePinned(${n})">✕</span>`;
+      pinDiv.appendChild(b);
+    });
+  }
+
+  /* ══════════════════════════════════
+     STATUS CONTROLS
+  ══════════════════════════════════ */
+  function removeExcluded(n) { state.excluded.delete(n); render(); }
+  function removePinned(n)   { state.pinned.delete(n);   render(); }
+  function clearExcluded()   { state.excluded.clear();   render(); }
+  function clearPinned()     { state.pinned.clear();     render(); }
+
+  /* ══════════════════════════════════
+     CORE LOGIC
+  ══════════════════════════════════ */
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function generateNumbers(pinned, excluded) {
+    const pool = Array.from({ length: 45 }, (_, i) => i + 1)
+      .filter(n => !excluded.has(n) && !pinned.has(n));
+    const need = 6 - pinned.size;
+    if (pool.length < need) throw new Error('pool-insufficient');
+    const picked = shuffle(pool).slice(0, need);
+    return [...pinned, ...picked].sort((a, b) => a - b);
+  }
+
+  /* ══════════════════════════════════
+     GENERATE HANDLER
+  ══════════════════════════════════ */
+  function onGenerate() {
+    let result;
+    try {
+      if (state.mode === 'auto') {
+        // 완전 랜덤 — 제외만 반영, 고정 무시
+        result = generateNumbers(new Set(), state.excluded);
+
+      } else if (state.mode === 'semi') {
+        // 고정 + 나머지 자동
+        if (state.pinned.size === 0) {
+          showToast('📌 반자동 모드: 번호판에서 고정 번호를 먼저 선택하세요');
+          return;
+        }
+        result = generateNumbers(state.pinned, state.excluded);
+
+      } else {
+        // 수동
+        if (state.selected.size !== 6) {
+          showToast(`✋ 6개를 선택해주세요 (현재 ${state.selected.size}개)`);
+          return;
+        }
+        result = [...state.selected].sort((a, b) => a - b);
+      }
+    } catch (e) {
+      showToast('⚠️ 제외 번호를 줄여주세요 (가능한 번호 부족)');
+      return;
+    }
+
+    showResult(result);
+    addHistory(result);
+  }
+
+  /* ══════════════════════════════════
+     RESULT
+  ══════════════════════════════════ */
+  function showResult(numbers) {
+    const card = document.getElementById('resultCard');
+    const wrap = document.getElementById('resultWrap');
+    card.style.display = 'block';
+    wrap.innerHTML = '';
+
+    numbers.forEach((n, i) => {
+      const ball = document.createElement('div');
+      ball.className = 'ball';
+      ball.style.background = getGradient(n);
+      ball.style.animationDelay = `${i * 0.07}s`;
+      ball.textContent = n;
+      wrap.appendChild(ball);
+    });
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.textContent = '📋 복사';
+    copyBtn.onclick = () => copyResult(numbers);
+    wrap.appendChild(copyBtn);
+  }
+
+  function copyResult(numbers) {
+    const text = numbers.join(', ');
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(`📋 복사 완료! [${text}]`))
+      .catch(() => showToast(`복사 실패: ${text}`));
+  }
+
+  /* ══════════════════════════════════
+     HISTORY
+  ══════════════════════════════════ */
+  function addHistory(numbers) {
+    state.history.unshift([...numbers]);
+    if (state.history.length > 5) state.history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const card = document.getElementById('historyCard');
+    const list = document.getElementById('historyList');
+    if (state.history.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    list.innerHTML = '';
+
+    state.history.forEach((nums, idx) => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      const ballsHtml = nums.map(n =>
+        `<div class="hist-ball" style="background:${getGradient(n)}">${n}</div>`
+      ).join('');
+      item.innerHTML = `
+        <span class="hist-idx">${idx + 1}</span>
+        <div class="hist-balls">${ballsHtml}</div>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  /* ══════════════════════════════════
+     TOAST
+  ══════════════════════════════════ */
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  /* ══════════════════════════════════
+     RESET
+  ══════════════════════════════════ */
+  function resetAll() {
+    state.mode = 'auto';
+    state.excluded.clear();
+    state.pinned.clear();
+    state.selected.clear();
+    state.history = [];
+
+    document.querySelectorAll('.tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.mode === 'auto')
+    );
+    document.getElementById('manualInfo').style.display  = 'none';
+    document.getElementById('pinnedRow').style.display   = 'flex';
+    document.getElementById('resultCard').style.display  = 'none';
+    document.getElementById('historyCard').style.display = 'none';
+    document.getElementById('manualCount').textContent   = '0';
+
+    render();
+    showToast('🔄 초기화 완료!');
+  }
+
+  /* ══════════════════════════════════
+     TAB SWITCH
+  ══════════════════════════════════ */
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const prev = state.mode;
+      state.mode = tab.dataset.mode;
+
+      document.querySelectorAll('.tab').forEach(t =>
+        t.classList.toggle('active', t === tab)
+      );
+
+      const isManual = state.mode === 'manual';
+      const isSemi   = state.mode === 'semi';
+
+      document.getElementById('manualInfo').style.display = isManual ? 'block' : 'none';
+      document.getElementById('pinnedRow').style.display  = isManual ? 'none'  : 'flex';
+
+      // 수동 모드 벗어날 때 선택 초기화
+      if (prev === 'manual') {
+        state.selected.clear();
+        document.getElementById('manualCount').textContent = '0';
+      }
+
+      // 자동 모드로 전환 시 고정 번호 안내
+      if (isSemi && state.pinned.size === 0) {
+        showToast('📌 번호판에서 고정할 번호를 선택하세요');
+      }
+
+      renderGrid();
+    });
+  });
+
+  /* ══════════════════════════════════
+     INIT
+  ══════════════════════════════════ */
+  buildGrid();
+  render();
+</script>
+</body>
+</html>
